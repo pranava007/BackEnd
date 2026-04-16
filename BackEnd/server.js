@@ -6,6 +6,7 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 
 import paymentRoutes from "./routes/payment.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 
 // ✅ DB connect
 connectDB();
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // routes
+app.use("/api/auth", authRoutes);
 app.use("/api/payment", paymentRoutes);
 
 // health check
@@ -24,7 +26,7 @@ app.get("/", (req, res) => {
   res.send("🚀 Payment Gateway Running");
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 7000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

@@ -13,7 +13,7 @@ export const phonepePayment = async (amount, orderId) => {
     merchantTransactionId: String(orderId),
     merchantUserId: "user_123",
     amount: amount * 100, // Amount in paise
-    redirectUrl: `http://localhost:5000/api/payment/verify-payment?orderId=${orderId}`,
+    redirectUrl: `http://localhost:7000/api/payment/verify-payment?orderId=${orderId}`,
     redirectMode: "POST",
     paymentInstrument: {
       type: "PAY_PAGE",

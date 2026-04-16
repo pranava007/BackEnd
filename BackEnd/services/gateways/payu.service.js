@@ -26,8 +26,8 @@ export const payuPayment = async (amount, orderId) => {
             firstname,
             email,
             phone: "9999999999",
-            surl: "http://localhost:5000/api/payment/verify-payment", // Success URL
-            furl: "http://localhost:5000/api/payment/verify-payment", // Failure URL
+            surl: "http://localhost:7000/api/payment/verify-payment", // Success URL
+            furl: "http://localhost:7000/api/payment/verify-payment", // Failure URL
             hash
         }
     };

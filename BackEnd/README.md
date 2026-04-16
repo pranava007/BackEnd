@@ -14,7 +14,7 @@ Express.js backend for Virtua_PAY_ALTERNATIVE.
     ```
 3.  Configure environment variables in `.env`:
     ```env
-    PORT=5000
+    PORT=7000
     MONGO_URI=mongodb://localhost:27017/virtua-pay
     RAZORPAY_KEY_ID=your_key_id
     RAZORPAY_KEY_SECRET=your_key_secret

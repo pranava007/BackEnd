@@ -1,7 +1,9 @@
 import Product from "../models/Product.model.js";
 import Order from "../models/Order.model.js";
 import GatewayConfig from "../models/GatewayConfig.model.js";
+import ExternalServer from "../models/ExternalServer.model.js";
 import { routePayment } from "../services/gatewayRouter.service.js";
+import axios from "axios";
 
 export const createOrder = async (req, res) => {
 
@@ -13,9 +15,28 @@ export const createOrder = async (req, res) => {
     let orderItems = [];
 
     // ✅ Dynamic pricing
-    for (let item of items) {
+    const extConfig = await ExternalServer.findOne();
+    const useExternal = extConfig && extConfig.isActive;
 
-      const product = await Product.findById(item.productId);
+    for (let item of items) {
+      let product;
+      
+      if (useExternal) {
+        try {
+          const headers = extConfig.apiKey ? { Authorization: `Bearer ${extConfig.apiKey}` } : {};
+          const response = await axios.get(`${extConfig.baseUrl}/api/products/${item.productId}`, { headers });
+          const extProd = response.data;
+          product = {
+            _id: extProd._id,
+            name: extProd.productName,
+            price: extProd.amt
+          };
+        } catch (error) {
+          throw new Error(`Failed to verify external product: ${error.message}`);
+        }
+      } else {
+        product = await Product.findById(item.productId);
+      }
 
       if (!product) throw new Error("Product not found");
 
@@ -55,6 +76,35 @@ export const createOrder = async (req, res) => {
 
 export const getProducts = async (req, res) => {
   try {
+    const extConfig = await ExternalServer.findOne();
+    
+    if (extConfig && extConfig.isActive) {
+      try {
+        const headers = extConfig.apiKey ? { Authorization: `Bearer ${extConfig.apiKey}` } : {};
+        const response = await axios.get(`${extConfig.baseUrl}/api/products`, {
+            headers,
+            timeout: 5000 // 5 second timeout
+        });
+        
+        // Map external products to internal schema
+        const mappedProducts = response.data.map(p => ({
+            _id: p._id,
+            name: p.productName,
+            description: p.description,
+            price: p.amt,
+            imageUrl: p.imageUrl,
+            isExternal: true
+        }));
+        
+        return res.json(mappedProducts);
+      } catch (error) {
+        return res.status(502).json({ 
+            error: `External Product API is unreachable: ${error.message}. Please check your configuration in Settings.` 
+        });
+      }
+    }
+
+    // Default to local products if external is not active
     const products = await Product.find({ isActive: true });
     res.json(products);
   } catch (err) {
@@ -64,7 +114,10 @@ export const getProducts = async (req, res) => {
 
 export const getOrders = async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
+    const query = req.user.role === 'admin' ? {} : { customerId: req.user._id };
+    const orders = await Order.find(query)
+      .populate("customerId", "username email")
+      .sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -92,6 +145,36 @@ export const updateGatewayConfig = async (req, res) => {
       await config.save();
     } else {
       config = await GatewayConfig.create({ activeGateway });
+    }
+    res.json(config);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getExternalConfig = async (req, res) => {
+  try {
+    let config = await ExternalServer.findOne();
+    if (!config) {
+      config = await ExternalServer.create({});
+    }
+    res.json(config);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateExternalConfig = async (req, res) => {
+  try {
+    const { baseUrl, apiKey, isActive } = req.body;
+    let config = await ExternalServer.findOne();
+    if (config) {
+      if (baseUrl !== undefined) config.baseUrl = baseUrl;
+      if (apiKey !== undefined) config.apiKey = apiKey;
+      if (isActive !== undefined) config.isActive = isActive;
+      await config.save();
+    } else {
+      config = await ExternalServer.create({ baseUrl, apiKey, isActive });
     }
     res.json(config);
   } catch (err) {
