@@ -77,3 +77,23 @@ export const getMe = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// --- Shopify OAuth ---
+
+export const shopifyAuth = async (req, res) => {
+  const { shop } = req.query;
+  if (!shop) return res.status(400).send("Shop parameter is required");
+
+  // Redirect to Shopify OAuth (Placeholder)
+  // const authUrl = `https://${shop}/admin/oauth/authorize?client_id=...`;
+  res.json({ message: "Redirect to Shopify OAuth here", shop });
+};
+
+export const shopifyCallback = async (req, res) => {
+  const { shop, code } = req.query;
+  console.log(`Received callback for ${shop} with code ${code}`);
+  
+  // Exchange code for access token (Placeholder)
+  res.json({ success: true, shop });
+};
+
